@@ -62,6 +62,12 @@ try {
   await cdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
   await waitFor(`document.querySelectorAll('.product').length === 8`);
   await mkdir('test-results', { recursive: true }); await screenshot('desktop.png');
+  const probe = '<strong id="acvis-xss-probe">ACVIS_XSS_PROBE</strong>';
+  await cdp('Page.navigate', { url: `${address}/?q=${encodeURIComponent(probe)}` });
+  await waitFor(`document.querySelector('#results-count #acvis-xss-probe')?.textContent === 'ACVIS_XSS_PROBE'`);
+  console.log('Intentional CWE-79 reproduced: q is inserted as HTML into the results label; script execution remains constrained by CSP.');
+  await cdp('Page.navigate', { url: address });
+  await waitFor(`document.querySelectorAll('.product').length === 8`);
   await fill('#search', 'Pikachu'); await evaluate(`document.querySelector('#search').dispatchEvent(new Event('input',{bubbles:true}))`);
   assert.equal(await evaluate(`document.querySelectorAll('.product').length`), 1);
   await fill('#search', ''); await evaluate(`document.querySelector('#search').dispatchEvent(new Event('input',{bubbles:true}))`);
