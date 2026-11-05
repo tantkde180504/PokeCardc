@@ -8,9 +8,8 @@ import { catalog } from './catalog.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const files = new Map([['/', ['index.html', 'text/html']], ['/app.js', ['app.js', 'text/javascript']], ['/styles.css', ['styles.css', 'text/css']]]);
-export function createApp(store) {
-  const attempts = new Map();
-  return http.createServer(async (req, res) => {
+export function createHandler(store, { secureCookies = process.env.COOKIE_SECURE === 'true' || process.env.VERCEL === '1', trustVercelProxy = process.env.VERCEL === '1' } = {}) {
+  return async (req, res) => {
     const headers = { 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'Referrer-Policy': 'no-referrer', 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'", 'Cache-Control': 'no-store' };
     function send(status, body) { res.writeHead(status, { ...headers, 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(body)); }
     try {
@@ -22,15 +21,15 @@ export function createApp(store) {
       }
       if (!url.pathname.startsWith('/api/')) throw new AppError('Không tìm thấy trang.', 404);
       const token = /(?:^|;\s*)session=([a-f0-9]{64})(?:;|$)/.exec(req.headers.cookie || '')?.[1];
-      const session = store.session(token);
+      const session = await store.session(token);
       if (req.method === 'GET') {
         if (url.pathname === '/api/me') return send(200, session || { user: null, csrf: null });
         if (url.pathname === '/api/catalog') return send(200, catalog);
-        if (url.pathname === '/api/listings') return send(200, store.listings());
+        if (url.pathname === '/api/listings') return send(200, await store.listings());
         if (!session) throw new AppError('Vui lòng đăng nhập.', 401);
-        if (url.pathname === '/api/collection') return send(200, store.collection(session.user.id));
-        if (url.pathname === '/api/cart') return send(200, store.cart(session.user.id));
-        if (url.pathname === '/api/orders') return send(200, store.orders(session.user.id));
+        if (url.pathname === '/api/collection') return send(200, await store.collection(session.user.id));
+        if (url.pathname === '/api/cart') return send(200, await store.cart(session.user.id));
+        if (url.pathname === '/api/orders') return send(200, await store.orders(session.user.id));
       }
       if (req.method !== 'POST') throw new AppError('Không hỗ trợ phương thức này.', 405);
       if (req.headers.origin) {
@@ -38,53 +37,56 @@ export function createApp(store) {
         if (origin.host !== req.headers.host || !['http:', 'https:'].includes(origin.protocol)) throw new AppError('Nguồn yêu cầu không hợp lệ.', 403);
       }
       if (!req.headers['content-type']?.startsWith('application/json')) throw new AppError('Yêu cầu dữ liệu JSON.', 415);
-      const chunks = [];
-      let size = 0;
-      for await (const chunk of req) { size += chunk.length; if (size > 16384) throw new AppError('Dữ liệu quá lớn.', 413); chunks.push(chunk); }
-      const raw = Buffer.concat(chunks).toString('utf8');
       let body;
-      try { body = JSON.parse(raw); } catch { throw new AppError('JSON không hợp lệ.'); }
+      if (req.body !== undefined) {
+        // Vercel may provide an already parsed body; local Node streams raw bytes.
+        const raw = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+        if (Buffer.byteLength(raw) > 16384) throw new AppError('Dữ liệu quá lớn.', 413);
+        try { body = JSON.parse(raw); } catch { throw new AppError('JSON không hợp lệ.'); }
+      } else {
+        const chunks = []; let size = 0;
+        for await (const chunk of req) { size += chunk.length; if (size > 16384) throw new AppError('Dữ liệu quá lớn.', 413); chunks.push(chunk); }
+        try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw new AppError('JSON không hợp lệ.'); }
+      }
       if (!body || typeof body !== 'object' || Array.isArray(body)) throw new AppError('Dữ liệu không hợp lệ.');
       if (['/api/register', '/api/login'].includes(url.pathname)) {
-        const ip = req.socket.remoteAddress;
-        const now = Date.now();
-        for (const [key, item] of attempts) if (item.until < now) attempts.delete(key);
-        const rate = attempts.get(ip) || { count: 0, until: now + 600000 };
-        rate.count++; attempts.set(ip, rate);
-        if (rate.count > 20) throw new AppError('Bạn đã thử quá nhiều lần. Vui lòng thử lại sau 10 phút.', 429);
-        const user = url.pathname === '/api/register' ? store.register(body) : store.login(body);
-        const created = store.createSession(user);
-        if (token) store.logout(token);
-        res.setHeader('Set-Cookie', `session=${created.token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400${process.env.COOKIE_SECURE === 'true' ? '; Secure' : ''}`);
+        const forwarded = trustVercelProxy ? req.headers['x-vercel-forwarded-for'] : null;
+        const ip = typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : req.socket.remoteAddress;
+        if (!await store.consumeAuthAttempt(ip)) throw new AppError('Bạn đã thử quá nhiều lần. Vui lòng thử lại sau 10 phút.', 429);
+        const user = url.pathname === '/api/register' ? await store.register(body) : await store.login(body);
+        const created = await store.createSession(user);
+        if (token) await store.logout(token);
+        res.setHeader('Set-Cookie', `session=${created.token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400${secureCookies ? '; Secure' : ''}`);
         return send(200, { user, csrf: created.csrf });
       }
       if (!session) throw new AppError('Vui lòng đăng nhập.', 401);
       if (req.headers['x-csrf-token'] !== session.csrf) throw new AppError('Phiên thao tác không hợp lệ. Hãy tải lại trang.', 403);
       const userId = session.user.id;
       switch (url.pathname) {
-        case '/api/logout': store.logout(token); res.setHeader('Set-Cookie', 'session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'); return send(200, { ok: true });
-        case '/api/collection': store.addCollection(userId, body); break;
-        case '/api/listings': return send(201, { id: store.createListing(userId, body) });
-        case '/api/listings/cancel': store.cancelListing(userId, integer(body.id, 1, Number.MAX_SAFE_INTEGER, 'Tin bán')); break;
-        case '/api/cart': store.setCart(userId, body); break;
-        case '/api/checkout': return send(201, store.checkout(userId));
+        case '/api/logout': await store.logout(token); res.setHeader('Set-Cookie', `session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${secureCookies ? '; Secure' : ''}`); return send(200, { ok: true });
+        case '/api/collection': await store.addCollection(userId, body); break;
+        case '/api/listings': return send(201, { id: await store.createListing(userId, body) });
+        case '/api/listings/cancel': await store.cancelListing(userId, integer(body.id, 1, Number.MAX_SAFE_INTEGER, 'Tin bán')); break;
+        case '/api/cart': await store.setCart(userId, body); break;
+        case '/api/checkout': return send(201, await store.checkout(userId));
         default: throw new AppError('Không tìm thấy API.', 404);
       }
       send(200, { ok: true });
     } catch (error) {
-      if (!(error instanceof AppError)) console.error(error);
+      if (!(error instanceof AppError)) console.error('Request failed:', error.code || error.name);
       if (!res.headersSent) send(error instanceof AppError ? error.status : 500, { error: error instanceof AppError ? error.message : 'Đã xảy ra lỗi máy chủ.' });
       else res.end();
     }
-  });
+  };
 }
+export function createApp(store, options) { return http.createServer(createHandler(store, options)); }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  mkdirSync(resolve(root, 'data'), { recursive: true });
-  const store = openStore(resolve(root, 'data', 'pokecard.sqlite'));
+  if (!process.env.DATABASE_URL) mkdirSync(resolve(root, 'data'), { recursive: true });
+  const store = await openStore(resolve(root, 'data', 'pokecard.sqlite'), { databaseUrl: process.env.DATABASE_URL });
   const server = createApp(store);
   const port = Number(process.env.PORT || 3000);
   const host = process.env.HOST || '127.0.0.1';
   server.listen(port, host, () => console.log(`PokeCard đang chạy tại http://${host}:${port}`));
-  const shutdown = () => server.close(() => { store.close(); process.exit(0); });
+  const shutdown = () => server.close(async () => { await store.close(); process.exit(0); });
   process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown);
 }

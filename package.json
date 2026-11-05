@@ -4,12 +4,22 @@
   "private": true,
   "type": "module",
   "description": "Vanilla JavaScript Pokemon card marketplace for ACVIS testing",
-  "engines": { "node": ">=24.0.0" },
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "start": "node server/index.js",
+    "build": "npm run check",
     "dev": "node --watch server/index.js",
     "test": "node --test",
     "test:browser": "node scripts/browser-smoke.mjs",
-    "check": "node --check server/index.js && node --check server/store.js && node --check public/app.js"
+    "check": "node --check server/index.js && node --check server/store.js && node --check server/database.js && node --check api/index.js && node --check public/app.js"
+  },
+  "dependencies": {
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
+    "@electric-sql/pglite-socket": "^0.2.18"
   }
 }

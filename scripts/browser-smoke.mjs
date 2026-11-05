@@ -13,7 +13,7 @@ let executable;
 for (const path of candidates) { try { await access(path); executable = path; break; } catch {} }
 if (!executable) throw new Error('Set BROWSER_PATH to a Chrome/Chromium/Edge executable.');
 const profile = await mkdtemp(join(tmpdir(), 'pokecard-browser-'));
-const store = openStore();
+const store = await openStore();
 const server = createApp(store);
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const address = `http://127.0.0.1:${server.address().port}`;
@@ -98,7 +98,7 @@ try {
   console.log('Browser smoke passed: search, mobile layout, registration, collection, listing, cancellation, cart, checkout, Back navigation and expired-session recovery. Screenshots: test-results/.');
 } finally {
   ws?.close(); browser.kill();
-  await new Promise(r => server.close(r)); store.close();
+  await new Promise(r => server.close(r)); await store.close();
   // Delete only the unique profile created by this script, after verifying its location.
   if (resolve(profile).startsWith(resolve(tmpdir()) + sep) && profile.includes('pokecard-browser-')) {
     for (let i = 0; i < 10; i++) { try { await rm(profile, { recursive: true, force: true }); break; } catch { await delay(300); } }

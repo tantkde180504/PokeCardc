@@ -8,10 +8,10 @@ import { createApp } from '../server/index.js';
 import { openStore } from '../server/store.js';
 
 async function setup(t) {
-  const store = openStore();
+  const store = await openStore();
   const server = createApp(store);
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  t.after(async () => { await new Promise(resolve => server.close(resolve)); store.close(); });
+  t.after(async () => { await new Promise(resolve => server.close(resolve)); await store.close(); });
   const base = `http://127.0.0.1:${server.address().port}`;
   function client() {
     let cookie = '', csrf = '';
@@ -135,15 +135,15 @@ test('SQLite preserves accounts, collection and cart after reopening', async () 
   const file = join(directory, 'store.sqlite');
   let store;
   try {
-    store = openStore(file);
-    const user = store.register({ name: 'Persistent', email: 'persist@example.test', password: 'local-test-passphrase' });
-    store.addCollection(user.id, { cardId: 1, quantity: 2 });
-    store.setCart(user.id, { listingId: 2, quantity: 1 });
-    store.close(); store = openStore(file);
-    assert.equal(store.login({ email: 'persist@example.test', password: 'local-test-passphrase' }).id, user.id);
-    assert.equal(store.collection(user.id)[0].quantity, 2);
-    assert.equal(store.cart(user.id)[0].cart_quantity, 1);
-  } finally { store?.close(); await rm(directory, { recursive: true, force: true }); }
+    store = await openStore(file);
+    const user = await store.register({ name: 'Persistent', email: 'persist@example.test', password: 'local-test-passphrase' });
+    await store.addCollection(user.id, { cardId: 1, quantity: 2 });
+    await store.setCart(user.id, { listingId: 2, quantity: 1 });
+    await store.close(); store = await openStore(file);
+    assert.equal((await store.login({ email: 'persist@example.test', password: 'local-test-passphrase' })).id, user.id);
+    assert.equal((await store.collection(user.id))[0].quantity, 2);
+    assert.equal((await store.cart(user.id))[0].cart_quantity, 1);
+  } finally { await store?.close(); await rm(directory, { recursive: true, force: true }); }
 });
 
 test('password whitespace is preserved rather than silently normalized', async t => {

@@ -23,3 +23,12 @@ Không có kết nối thanh toán, vận chuyển, email hay dịch vụ bên n
 ## Xuất bản source theo yêu cầu tiếp theo
 
 Người dùng đã yêu cầu tạo repo và đẩy mã nguồn lên GitHub sau khi hoàn thành bản đầu. Repo private: [tantkde180504/PokeCardc](https://github.com/tantkde180504/PokeCardc), nhánh `main`. Kiểm tra cú pháp và 10 kiểm thử tích hợp được chạy lại, đều đạt. Không đưa `data/`, tài khoản local, session, SQLite hoặc `test-results/` vào Git. Việc xuất bản source không đồng nghĩa đã kết nối hoặc quét bằng ACVIS.
+
+## Chuẩn bị Vercel + PostgreSQL
+
+- Theo yêu cầu tiếp theo, thêm PostgreSQL cho deployment, giữ SQLite khi chạy local; frontend vẫn JavaScript thuần.
+- `npm run build`, 13 kiểm thử và browser smoke đều đạt sau thay đổi. Ba kiểm thử mới xác minh SQL/driver PostgreSQL qua PGlite TCP, body JSON đã parse trong Vercel và cookie Secure, cùng lỗi 503 khi chưa cấu hình database.
+- Hai reviewer độc lập không còn phát hiện chặn hoàn thành trong mã đã kiểm tra. PGlite không chứng minh isolation của PostgreSQL nhiều tiến trình.
+- Đã tạo project `poke-card/pokecardc` và kết nối GitHub. Build trực tiếp trên Vercel đạt; build Vercel local trên Windows không chạy được vì thiếu quyền symlink trong cache CLI. Chuyển build lên cloud, không thay quyền hệ thống.
+- Người dùng đã tự phê duyệt Vercel CLI và điều khoản Neon. Đã tạo `pokecardc-db`, gói `free_v3`, vùng `sin1`, chỉ kết nối Production. API luôn yêu cầu PostgreSQL và không dùng database tạm khi deploy.
+- URL production: https://pokecardc.vercel.app. Việc tạo database và build đạt chưa thay thế xác minh giao dịch trên deployment; kết quả cloud được ghi sau khi kiểm tra.
