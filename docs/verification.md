@@ -32,3 +32,11 @@ Người dùng đã yêu cầu tạo repo và đẩy mã nguồn lên GitHub sau
 - Đã tạo project `poke-card/pokecardc` và kết nối GitHub. Build trực tiếp trên Vercel đạt; build Vercel local trên Windows không chạy được vì thiếu quyền symlink trong cache CLI. Chuyển build lên cloud, không thay quyền hệ thống.
 - Người dùng đã tự phê duyệt Vercel CLI và điều khoản Neon. Đã tạo `pokecardc-db`, gói `free_v3`, vùng `sin1`, chỉ kết nối Production. API luôn yêu cầu PostgreSQL và không dùng database tạm khi deploy.
 - URL production: https://pokecardc.vercel.app. Việc tạo database và build đạt chưa thay thế xác minh giao dịch trên deployment; kết quả cloud được ghi sau khi kiểm tra.
+
+## Xác minh deployment thật
+
+- Deployment `dpl_5wMik6aC4cwmxUrEQGtoqo4yawjX` đạt `READY`, URL production https://pokecardc.vercel.app.
+- `node scripts/cloud-smoke.mjs https://pokecardc.vercel.app`: đạt. Gọi HTTPS trực tiếp qua routing Vercel, không mock driver hoặc database cloud, không dùng bypass authentication.
+- Đã xác minh `/api/me`, tin bán, hai tài khoản thử nghiệm, cookie Secure/HttpOnly/SameSite, bộ sưu tập, đăng bán, giỏ hàng, checkout đúng tổng tiền, lịch sử người bán, hủy phần còn lại và đăng nhập lại vẫn đọc được đơn.
+- Đã tạo đơn giả lập #1. Tin bán thử nghiệm đã dừng; cả hai session kiểm thử được đăng xuất. Tài khoản và lịch sử mẫu được giữ lại trong database; mật khẩu ngẫu nhiên chỉ dùng trong bộ nhớ và không lưu/in ra.
+- Chưa chạy ACVIS, chưa xác minh production PostgreSQL dưới tải đồng thời hoặc audit bảo mật đầy đủ. `npm test` và browser smoke local vẫn là bằng chứng riêng, không thay thế kết quả HTTPS nêu trên.

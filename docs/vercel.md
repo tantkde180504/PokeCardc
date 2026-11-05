@@ -41,6 +41,8 @@ npm run test:browser
 
 Kiểm tra cloud: `/api/me` trả JSON, `/api/listings` có card, đăng ký trả cookie `Secure; HttpOnly; SameSite=Strict`, đăng nhập lại vẫn thấy bộ sưu tập, giỏ hàng và đơn hàng. Việc build thành công chưa xác minh PostgreSQL cloud hoặc luồng trên deployment thật.
 
+Có thể chạy `node scripts/cloud-smoke.mjs https://pokecardc.vercel.app` để kiểm tra lại deployment thuộc quyền của bạn. Script sẽ tạo hai tài khoản và một đơn giả lập, dừng tin bán kiểm thử, rồi đăng xuất. Nó để lại tài khoản/lịch sử kiểm thử trong database; không in hay lưu mật khẩu.
+
 ## Nguồn
 
 - [SQLite trên Vercel](https://vercel.com/kb/guide/is-sqlite-supported-in-vercel): local filesystem không cung cấp persistence phù hợp cho database.
