@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f6f4ee">
+  <meta name="description" content="PokeCard — không gian dành cho người sưu tầm card Pokémon. Quản lý bộ sưu tập, đăng bán và mua card.">
+  <title>PokeCard — Mỗi chiếc card, một câu chuyện</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%2353684b'/%3E%3Cpath d='M2 16h28' stroke='%23f7f5ef' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23f7f5ef'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header class="header">
+    <a class="brand" href="#market" aria-label="PokeCard trang chủ"><span class="pokeball" aria-hidden="true"></span>pokecard<span class="brand-dot">®</span></a>
+    <nav aria-label="Điều hướng chính">
+      <a href="#market" data-page="market">Khám phá</a>
+      <a href="#collection" data-page="collection">Bộ sưu tập</a>
+      <a href="#selling" data-page="selling">Đang bán</a>
+      <a href="#orders" data-page="orders">Đơn hàng</a>
+    </nav>
+    <div class="header-actions"><button id="cart-button" class="cart-button" aria-label="Mở giỏ hàng">Giỏ hàng <span id="cart-count">0</span></button><button id="account-button" class="button dark small">Đăng nhập ↗</button></div>
+  </header>
+  <main id="main" tabindex="-1"></main>
+  <footer><a class="brand" href="#market"><span class="pokeball" aria-hidden="true"></span>pokecard</a><p>Dành cho những người luôn muốn sưu tầm thêm một chút.</p><span>ACVIS sandbox · Giao dịch giả lập · 2026</span></footer>
+  <dialog id="modal" aria-labelledby="modal-title"><div class="modal-top"><span class="eyebrow">POKECARD / COMMUNITY</span><button id="close-modal" class="icon-button" aria-label="Đóng hộp thoại">×</button></div><div id="modal-body"></div></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
