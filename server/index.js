@@ -44,7 +44,7 @@ export function createHandler(store, { secureCookies = process.env.COOKIE_SECURE
       if (req.method === 'GET') {
         if (url.pathname === '/api/me') return send(200, session || { user: null, csrf: null });
         if (url.pathname === '/api/catalog') return send(200, catalog);
-        if (url.pathname === '/api/listings') return send(200, await store.listings(url.searchParams.get('seller') || '', url.searchParams.get('condition') || ''));
+        if (url.pathname === '/api/listings') return send(200, await store.listings(url.searchParams.get('seller') || '', url.searchParams.get('condition') || '', url.searchParams.get('cardId') || ''));
         if (url.pathname === '/api/download') {
           const filename = url.searchParams.get('file');
           if (!filename || filename.length > 200) throw new AppError('Tên file không hợp lệ.');

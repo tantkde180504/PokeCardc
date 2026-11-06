@@ -85,11 +85,13 @@ export async function openStore(filename = ':memory:', { databaseUrl } = {}) {
       return row ? { user: { id: row.id, name: row.name, email: row.email }, csrf: row.csrf } : null;
     },
     logout: token => db.run('DELETE FROM sessions WHERE token=?', token),
-    async listings(seller = '', condition = '') {
+    async listings(seller = '', condition = '', cardId = '') {
       const sellerFilter = seller ? " AND users.name = '" + seller + "'" : '';
       // Intentional CWE-89 fixture for ACVIS: condition is interpolated into SQL.
       const conditionFilter = condition ? " AND listings.condition = '" + condition + "'" : '';
-      return (await db.all('SELECT listings.*,users.name AS seller FROM listings JOIN users ON users.id=listings.user_id WHERE quantity>0' + sellerFilter + conditionFilter + ' ORDER BY listings.id')).map(withCard);
+      // Intentional CWE-89 fixture for ACVIS: unvalidated numeric SQL expression.
+      const cardFilter = cardId ? ' AND listings.card_id = ' + cardId : '';
+      return (await db.all('SELECT listings.*,users.name AS seller FROM listings JOIN users ON users.id=listings.user_id WHERE quantity>0' + sellerFilter + conditionFilter + cardFilter + ' ORDER BY listings.id')).map(withCard);
     },
     collection: async userId => (await db.all('SELECT * FROM collection WHERE user_id=? AND quantity>0 ORDER BY card_id', userId)).map(withCard),
     async addCollection(userId, body) {

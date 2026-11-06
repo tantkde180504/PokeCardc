@@ -41,6 +41,12 @@ test('PostgreSQL wire protocol: schema, accounts, sessions, persistent rate limi
   assert.equal((await store.listings('', 'Mint')).length, 0);
   assert.equal((await store.listings('', "Near Mint' AND 1=1 -- ")).length, 8);
   assert.equal((await store.listings('', "Near Mint' AND 1=2 -- ")).length, 0);
+  const cardBaseline = await store.listings('', '', '1');
+  assert.equal(cardBaseline.length, 1); assert.equal(cardBaseline[0].card_id, 1);
+  assert.deepEqual(await store.listings('', '', '1 AND 1=1'), cardBaseline);
+  assert.deepEqual(await store.listings('', '', '1 AND 1=2'), []);
+  assert.deepEqual(await store.listings('', '', '999'), []);
+  assert.deepEqual(await store.listings('PokeCard Studio', 'Near Mint', '1'), cardBaseline);
   server = createApp(store);
   await new Promise(r => server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${server.address().port}`;

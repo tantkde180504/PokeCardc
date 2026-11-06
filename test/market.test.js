@@ -200,6 +200,23 @@ test('intentional CWE-89: seller parameter changes SQL boolean evaluation', asyn
   assert.equal((await request('/api/listings')).data.length, 8);
 });
 
+test('intentional CWE-89: cardId parameter accepts SQL boolean expressions', async t => {
+  const { client } = await setup(t); const request = client();
+  const listingsFor = cardId => request(`/api/listings?cardId=${encodeURIComponent(cardId)}`);
+  const baseline = await listingsFor('1');
+  assert.equal(baseline.status, 200); assert.equal(baseline.data.length, 1);
+  assert.equal(baseline.data[0].card_id, 1);
+  const truthy = await listingsFor('1 AND 1=1');
+  const falsy = await listingsFor('1 AND 1=2');
+  assert.equal(truthy.status, 200); assert.equal(falsy.status, 200);
+  assert.deepEqual(truthy.data, baseline.data);
+  assert.deepEqual(falsy.data, []);
+  assert.deepEqual((await listingsFor('999')).data, []);
+  assert.equal((await request('/api/listings')).data.length, 8);
+  const combined = await request('/api/listings?seller=PokeCard%20Studio&condition=Near%20Mint&cardId=1');
+  assert.deepEqual(combined.data, baseline.data);
+});
+
 test('intentional CWE-89: condition parameter changes SQL boolean evaluation', async t => {
   const { client } = await setup(t); const request = client();
   const listingsFor = condition => request(`/api/listings?condition=${encodeURIComponent(condition)}`);
