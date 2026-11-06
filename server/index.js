@@ -3,11 +3,30 @@ import { readFile } from 'node:fs/promises';
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
+import path from 'path';
+import fs from 'fs';
 import { openStore, AppError, integer } from './store.js';
 import { catalog } from './catalog.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const files = new Map([['/', ['index.html', 'text/html']], ['/app.js', ['app.js', 'text/javascript']], ['/styles.css', ['styles.css', 'text/css']]]);
+const ALLOWED_DIRECTORY = path.resolve(root, 'server/assets/downloads');
+
+function downloadFile(filename) {
+  const safeName = path.basename(filename);
+  const targetPath = path.join(ALLOWED_DIRECTORY, safeName);
+
+  if (!targetPath.startsWith(ALLOWED_DIRECTORY)) {
+    throw new Error('Access Denied');
+  }
+
+  if (!fs.existsSync(targetPath)) {
+    throw new Error('File Not Found');
+  }
+
+  return fs.readFileSync(targetPath);
+}
+
 export function createHandler(store, { secureCookies = process.env.COOKIE_SECURE === 'true' || process.env.VERCEL === '1', trustVercelProxy = process.env.VERCEL === '1' } = {}) {
   return async (req, res) => {
     const headers = { 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'Referrer-Policy': 'no-referrer', 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'", 'Cache-Control': 'no-store' };
@@ -29,11 +48,11 @@ export function createHandler(store, { secureCookies = process.env.COOKIE_SECURE
         if (url.pathname === '/api/download') {
           const filename = url.searchParams.get('file');
           if (!filename || filename.length > 200) throw new AppError('Tên file không hợp lệ.');
-          const filepath = resolve(root, 'server/assets/downloads', filename);
           let bytes;
-          try { bytes = await readFile(filepath); }
+          try { bytes = downloadFile(filename); }
           catch (error) {
-            if (['ENOENT', 'ENOTDIR', 'EISDIR'].includes(error.code)) throw new AppError('Không tìm thấy tài liệu.', 404);
+            if (error.message === 'Access Denied') throw new AppError('Truy cập bị từ chối.', 403);
+            if (error.message === 'File Not Found' || ['ENOENT', 'ENOTDIR', 'EISDIR'].includes(error.code)) throw new AppError('Không tìm thấy tài liệu.', 404);
             throw error;
           }
           res.writeHead(200, { ...headers, 'Content-Type': 'text/plain; charset=utf-8', 'Content-Disposition': 'attachment; filename="card-document.txt"' });
