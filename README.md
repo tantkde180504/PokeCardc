@@ -49,7 +49,7 @@ Kiểm thử trình duyệt tùy chọn: `npm run test:browser`. Script tự tì
 
 ## ACVIS và GitHub
 
-Bản hiện tại là ứng dụng bình thường; **không cố tình cài lỗ hổng**. Khi cần kiểm thử ACVIS, tạo nhánh riêng từ bản chuẩn này, thêm từng tình huống có mô tả và kết quả kỳ vọng, rồi commit/push khi bạn yêu cầu. Repository private: [tantkde180504/PokeCardc](https://github.com/tantkde180504/PokeCardc). Nhánh `main` lưu bản chuẩn ban đầu.
+Bản chuẩn trước lần thử hiện tại là commit `82617e0`. Theo yêu cầu, nhánh `main` có một lỗi IDOR cố tình thêm tại API xem đơn hàng; xem [case 002, cách tái hiện và khắc phục](docs/acvis-idor-case.md). Lỗi XSS cũ đã được hoàn tác và không khôi phục trong lần này. Repository private: [tantkde180504/PokeCardc](https://github.com/tantkde180504/PokeCardc).
 
 ACVIS tại `D:\ACVIS\ACVIS` hiện có template cho SQLi, XSS, Path Traversal, IDOR và Hardcoded Secrets. Không coi việc ACVIS không báo lỗi là chứng nhận an toàn. Chưa thực hiện quét ACVIS trong lần xây dựng này.
 

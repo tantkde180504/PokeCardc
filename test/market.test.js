@@ -167,3 +167,21 @@ test('Vietnamese characters survive HTTP chunks split inside a UTF-8 code point'
   });
   assert.equal(response.status, 200); assert.equal(response.data.user.name, 'Nguyễn');
 });
+
+test('intentional CWE-639: authenticated userId override exposes another buyer orders', async t => {
+  const { client } = await setup(t);
+  const owner = client(), other = client(), anonymous = client();
+  const user = await register(owner, 'idor-owner');
+  await register(other, 'idor-observer');
+  await owner('/api/cart', { listingId: 1, quantity: 1 });
+  const checkout = await owner('/api/checkout', {});
+  assert.equal(checkout.status, 201);
+  assert.equal((await other('/api/orders')).data.purchases.length, 0);
+  const exposed = await other(`/api/orders?userId=${user.id}`);
+  assert.equal(exposed.status, 200);
+  assert.equal(exposed.data.purchases[0].id, checkout.data.id);
+  assert.equal(exposed.data.purchases[0].total, 2450000);
+  assert.equal(exposed.data.purchases[0].items[0].card.name, 'Charizard ex');
+  assert.equal((await anonymous(`/api/orders?userId=${user.id}`)).status, 401);
+  assert.equal((await other('/api/orders?userId=-1')).status, 400);
+});

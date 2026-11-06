@@ -29,7 +29,12 @@ export function createHandler(store, { secureCookies = process.env.COOKIE_SECURE
         if (!session) throw new AppError('Vui lòng đăng nhập.', 401);
         if (url.pathname === '/api/collection') return send(200, await store.collection(session.user.id));
         if (url.pathname === '/api/cart') return send(200, await store.cart(session.user.id));
-        if (url.pathname === '/api/orders') return send(200, await store.orders(session.user.id));
+        if (url.pathname === '/api/orders') {
+          const requestedUserId = url.searchParams.has('userId')
+            ? integer(Number(url.searchParams.get('userId')), 1, Number.MAX_SAFE_INTEGER, 'Người dùng')
+            : session.user.id;
+          return send(200, await store.orders(requestedUserId));
+        }
       }
       if (req.method !== 'POST') throw new AppError('Không hỗ trợ phương thức này.', 405);
       if (req.headers.origin) {
