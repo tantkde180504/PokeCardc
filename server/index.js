@@ -14,9 +14,9 @@ const ALLOWED_DIRECTORY = path.resolve(root, 'server/assets/downloads');
 
 function downloadFile(filename) {
   const safeName = path.basename(filename);
-  const targetPath = path.join(ALLOWED_DIRECTORY, safeName);
+  const targetPath = path.resolve(ALLOWED_DIRECTORY, safeName);
 
-  if (!targetPath.startsWith(ALLOWED_DIRECTORY)) {
+  if (!targetPath.startsWith(path.resolve(ALLOWED_DIRECTORY) + path.sep)) {
     throw new Error('Access Denied');
   }
 
