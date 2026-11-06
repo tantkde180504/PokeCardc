@@ -200,6 +200,21 @@ test('intentional CWE-89: seller parameter changes SQL boolean evaluation', asyn
   assert.equal((await request('/api/listings')).data.length, 8);
 });
 
+test('intentional CWE-89: condition parameter changes SQL boolean evaluation', async t => {
+  const { client } = await setup(t); const request = client();
+  const listingsFor = condition => request(`/api/listings?condition=${encodeURIComponent(condition)}`);
+  const baseline = await listingsFor('Near Mint');
+  assert.equal(baseline.status, 200); assert.equal(baseline.data.length, 8);
+  assert.equal((await listingsFor('Mint')).data.length, 0);
+  const truthy = await listingsFor("Near Mint' AND 1=1 -- ");
+  const falsy = await listingsFor("Near Mint' AND 1=2 -- ");
+  assert.equal(truthy.status, 200); assert.equal(falsy.status, 200);
+  assert.deepEqual(truthy.data, baseline.data);
+  assert.equal(falsy.data.length, 0);
+  assert.equal((await request('/api/listings')).data.length, 8);
+  assert.equal((await request('/api/listings?seller=PokeCard%20Studio&condition=Near%20Mint')).data.length, 8);
+});
+
 test('mitigated CWE-22: download file parameter cannot escape the downloads directory', async t => {
   const { base } = await setup(t);
   const normal = await fetch(base + '/api/download?file=card-guide.txt');

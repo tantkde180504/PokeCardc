@@ -37,6 +37,10 @@ test('PostgreSQL wire protocol: schema, accounts, sessions, persistent rate limi
   assert.equal((await store.listings('PokeCard Studio')).length, 8);
   assert.equal((await store.listings("PokeCard Studio' AND 1=1 -- ")).length, 8);
   assert.equal((await store.listings("PokeCard Studio' AND 1=2 -- ")).length, 0);
+  assert.equal((await store.listings('', 'Near Mint')).length, 8);
+  assert.equal((await store.listings('', 'Mint')).length, 0);
+  assert.equal((await store.listings('', "Near Mint' AND 1=1 -- ")).length, 8);
+  assert.equal((await store.listings('', "Near Mint' AND 1=2 -- ")).length, 0);
   server = createApp(store);
   await new Promise(r => server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${server.address().port}`;
