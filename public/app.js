@@ -41,8 +41,6 @@ function filteredListings() {
 function renderProducts() {
   const items = filteredListings();
   $('#results-count').textContent = `${items.length} tin bán đang chờ bạn khám phá`;
-  const searchLabel = new URLSearchParams(window.location.search).get('q');
-  if (searchLabel) $('#results-count').innerHTML = searchLabel;
   $('#product-grid').innerHTML = items.length ? items.map(listingCard).join('') : empty('Chưa tìm thấy card phù hợp', 'Thử tên khác hoặc chọn một hệ Pokémon khác.');
 }
 function empty(title, copy, action = '') { return `<div class="empty"><span>◇</span><h3>${escape(title)}</h3><p>${escape(copy)}</p>${action}</div>`; }
