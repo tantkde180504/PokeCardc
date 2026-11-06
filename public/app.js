@@ -33,14 +33,22 @@ function listingCard(item) {
 }
 function filteredListings() {
   let items = state.listings.filter(i => (state.type === 'all' || i.card.type === state.type) && `${i.card.name} ${i.card.set} ${i.card.number} ${i.seller}`.toLowerCase().includes(state.search.toLowerCase()));
-  if (state.sort === 'price-asc') items.sort((a,b) => a.price-b.price);
-  if (state.sort === 'price-desc') items.sort((a,b) => b.price-a.price);
-  if (state.sort === 'newest') items.sort((a,b) => b.id-a.id);
+  if (state.sort === 'price-asc') items.sort((a, b) => a.price - b.price);
+  if (state.sort === 'price-desc') items.sort((a, b) => b.price - a.price);
+  if (state.sort === 'newest') items.sort((a, b) => b.id - a.id);
   return items;
 }
 function renderProducts() {
   const items = filteredListings();
-  $('#results-count').textContent = `${items.length} tin bán đang chờ bạn khám phá`;
+  const resultsCountElement = document.getElementById('results-count');
+  resultsCountElement.textContent = `${items.length} tin bán đang chờ bạn khám phá`;
+  const searchLabel = new URLSearchParams(window.location.search).get('q');
+  if (searchLabel) {
+    const span = document.createElement('span');
+    span.textContent = searchLabel;
+    resultsCountElement.appendChild(document.createTextNode(' '));
+    resultsCountElement.appendChild(span);
+  }
   $('#product-grid').innerHTML = items.length ? items.map(listingCard).join('') : empty('Chưa tìm thấy card phù hợp', 'Thử tên khác hoặc chọn một hệ Pokémon khác.');
 }
 function empty(title, copy, action = '') { return `<div class="empty"><span>◇</span><h3>${escape(title)}</h3><p>${escape(copy)}</p>${action}</div>`; }
@@ -51,7 +59,7 @@ function render() {
   $('#cart-count').textContent = state.cart.reduce((sum, i) => sum + i.cart_quantity, 0);
   const main = $('#main');
   if (state.page === 'market') {
-    main.innerHTML = `${hero()}<section id="cards" class="market"><div class="section-heading"><div><span class="eyebrow">KHÁM PHÁ BỘ SƯU TẬP</span><h2>Chiếc card tiếp theo của bạn.</h2><p id="results-count"></p></div><label class="sort-label">Sắp xếp <select id="sort"><option value="featured">Nổi bật</option><option value="newest">Mới nhất</option><option value="price-asc">Giá tăng dần</option><option value="price-desc">Giá giảm dần</option></select></label></div><div class="filter-bar"><div class="tabs" role="group" aria-label="Lọc theo hệ">${Object.entries(types).map(([key,label]) => `<button class="tab ${state.type === key ? 'selected' : ''}" data-action="filter" data-type="${key}">${label}</button>`).join('')}</div><label class="search"><span aria-hidden="true">⌕</span><input id="search" placeholder="Tìm tên card, bộ thẻ…" aria-label="Tìm kiếm card" value="${escape(state.search)}"></label></div><div id="product-grid" class="product-grid"></div><div class="collection-banner"><span class="banner-symbol">✳</span><div><span class="eyebrow">BỘ SƯU TẬP CỦA BẠN, CÂU CHUYỆN CỦA BẠN</span><h2>Đam mê xứng đáng có một góc riêng.</h2><p>Lưu giữ những chiếc card yêu thích và bắt đầu hành trình sưu tầm.</p></div><a href="#collection" class="button dark">Tạo bộ sưu tập ↗</a></div></section>`;
+    main.innerHTML = `${hero()}<section id="cards" class="market"><div class="section-heading"><div><span class="eyebrow">KHÁM PHÁ BỘ SƯU TẬP</span><h2>Chiếc card tiếp theo của bạn.</h2><p id="results-count"></p></div><label class="sort-label">Sắp xếp <select id="sort"><option value="featured">Nổi bật</option><option value="newest">Mới nhất</option><option value="price-asc">Giá tăng dần</option><option value="price-desc">Giá giảm dần</option></select></label></div><div class="filter-bar"><div class="tabs" role="group" aria-label="Lọc theo hệ">${Object.entries(types).map(([key, label]) => `<button class="tab ${state.type === key ? 'selected' : ''}" data-action="filter" data-type="${key}">${label}</button>`).join('')}</div><label class="search"><span aria-hidden="true">⌕</span><input id="search" placeholder="Tìm tên card, bộ thẻ…" aria-label="Tìm kiếm card" value="${escape(state.search)}"></label></div><div id="product-grid" class="product-grid"></div><div class="collection-banner"><span class="banner-symbol">✳</span><div><span class="eyebrow">BỘ SƯU TẬP CỦA BẠN, CÂU CHUYỆN CỦA BẠN</span><h2>Đam mê xứng đáng có một góc riêng.</h2><p>Lưu giữ những chiếc card yêu thích và bắt đầu hành trình sưu tầm.</p></div><a href="#collection" class="button dark">Tạo bộ sưu tập ↗</a></div></section>`;
     $('#sort').value = state.sort;
     $('#sort').addEventListener('change', e => { state.sort = e.target.value; renderProducts(); });
     $('#search').addEventListener('input', e => { state.search = e.target.value; renderProducts(); });
@@ -64,12 +72,12 @@ function render() {
   const workspace = $('#workspace');
   if (!state.user) { workspace.innerHTML = empty('Câu chuyện bắt đầu từ đây', 'Đăng nhập để lưu bộ sưu tập và quản lý giao dịch.', '<button class="button dark" data-action="auth">Đăng nhập / Đăng ký ↗</button>'); return; }
   if (state.page === 'collection') {
-    workspace.innerHTML = `<div class="summary-strip"><span><strong>${state.collection.length}</strong> loại card</span><span><strong>${state.collection.reduce((s,i) => s+i.quantity,0)}</strong> card trong bộ sưu tập</span><p>Card đang đăng bán được giữ riêng khỏi bộ sưu tập.</p></div>` + (state.collection.length ? `<div class="product-grid">${state.collection.map(i => `<article class="product"><div class="product-image">${cardArt(i.card)}</div><div class="product-meta">${escape(i.card.set)}</div><h3>${escape(i.card.name)}</h3><div class="price-row"><span>Sở hữu <strong>${i.quantity} card</strong></span><button class="button outline small" data-action="sell" data-card="${i.card_id}">Đăng bán ↗</button></div></article>`).join('')}</div>` : empty('Một bộ sưu tập đang chờ được viết', 'Thêm card bạn sở hữu hoặc tìm mua card trên chợ.', '<button class="button dark" data-action="collect">Thêm card đầu tiên ＋</button>'));
+    workspace.innerHTML = `<div class="summary-strip"><span><strong>${state.collection.length}</strong> loại card</span><span><strong>${state.collection.reduce((s, i) => s + i.quantity, 0)}</strong> card trong bộ sưu tập</span><p>Card đang đăng bán được giữ riêng khỏi bộ sưu tập.</p></div>` + (state.collection.length ? `<div class="product-grid">${state.collection.map(i => `<article class="product"><div class="product-image">${cardArt(i.card)}</div><div class="product-meta">${escape(i.card.set)}</div><h3>${escape(i.card.name)}</h3><div class="price-row"><span>Sở hữu <strong>${i.quantity} card</strong></span><button class="button outline small" data-action="sell" data-card="${i.card_id}">Đăng bán ↗</button></div></article>`).join('')}</div>` : empty('Một bộ sưu tập đang chờ được viết', 'Thêm card bạn sở hữu hoặc tìm mua card trên chợ.', '<button class="button dark" data-action="collect">Thêm card đầu tiên ＋</button>'));
   } else if (state.page === 'selling') {
     const listings = state.listings.filter(i => i.user_id === state.user.id);
     workspace.innerHTML = listings.length ? `<div class="product-grid">${listings.map(i => `<div>${listingCard(i)}<button class="button outline full" data-action="cancel" data-id="${i.id}">Dừng bán & trả card về bộ sưu tập</button></div>`).join('')}</div>` : empty('Bạn chưa có tin bán nào', 'Thêm card vào bộ sưu tập, sau đó đăng bán để chia sẻ với cộng đồng.', '<button class="button dark" data-action="sell">Đăng bán card ＋</button>');
   } else {
-    workspace.innerHTML = `<h2>Đơn mua (${state.orders.purchases.length})</h2>` + (state.orders.purchases.length ? state.orders.purchases.map(o => `<article class="order"><div class="order-head"><strong>Đơn #${String(o.id).padStart(5,'0')}</strong><span>${new Date(o.created).toLocaleString('vi-VN')}</span><span class="pill">Hoàn tất giả lập</span></div>${o.items.map(i => `<div class="order-line"><span>${escape(i.card.name)} × ${i.quantity}</span><strong>${money(i.price * i.quantity)}</strong></div>`).join('')}<div class="order-total">Tổng cộng <strong>${money(o.total)}</strong></div></article>`).join('') : empty('Chưa có đơn mua', 'Chiếc card tiếp theo có thể đang đợi bạn tại chợ.', '<a class="button outline" href="#market">Khám phá card ↗</a>')) + `<h2 class="sales-title">Lịch sử bán (${state.orders.sales.length})</h2>` + (state.orders.sales.length ? state.orders.sales.map(i => `<article class="order"><div class="order-line"><span>Đơn #${i.order_id} · ${escape(i.card.name)} × ${i.quantity}</span><strong>${money(i.quantity*i.price)}</strong></div><p>${new Date(i.created).toLocaleString('vi-VN')} · Hoàn tất giả lập</p></article>`).join('') : '<p class="muted">Giao dịch bán sẽ xuất hiện ở đây khi có người mua card của bạn.</p>');
+    workspace.innerHTML = `<h2>Đơn mua (${state.orders.purchases.length})</h2>` + (state.orders.purchases.length ? state.orders.purchases.map(o => `<article class="order"><div class="order-head"><strong>Đơn #${String(o.id).padStart(5, '0')}</strong><span>${new Date(o.created).toLocaleString('vi-VN')}</span><span class="pill">Hoàn tất giả lập</span></div>${o.items.map(i => `<div class="order-line"><span>${escape(i.card.name)} × ${i.quantity}</span><strong>${money(i.price * i.quantity)}</strong></div>`).join('')}<div class="order-total">Tổng cộng <strong>${money(o.total)}</strong></div></article>`).join('') : empty('Chưa có đơn mua', 'Chiếc card tiếp theo có thể đang đợi bạn tại chợ.', '<a class="button outline" href="#market">Khám phá card ↗</a>')) + `<h2 class="sales-title">Lịch sử bán (${state.orders.sales.length})</h2>` + (state.orders.sales.length ? state.orders.sales.map(i => `<article class="order"><div class="order-line"><span>Đơn #${i.order_id} · ${escape(i.card.name)} × ${i.quantity}</span><strong>${money(i.quantity * i.price)}</strong></div><p>${new Date(i.created).toLocaleString('vi-VN')} · Hoàn tất giả lập</p></article>`).join('') : '<p class="muted">Giao dịch bán sẽ xuất hiện ở đây khi có người mua card của bạn.</p>');
   }
 }
 async function refresh() {
@@ -103,7 +111,7 @@ function sell(cardId) {
 }
 function cart() {
   if (!requireUser()) return;
-  const total = state.cart.reduce((s,i) => s+i.price*i.cart_quantity,0);
+  const total = state.cart.reduce((s, i) => s + i.price * i.cart_quantity, 0);
   showModal(`<h2 id="modal-title">Giỏ hàng của bạn.</h2>${state.cart.length ? `<div class="cart-items">${state.cart.map(i => `<div class="cart-item"><div class="cart-art">${cardArt(i.card)}</div><div class="cart-item-copy"><strong>${escape(i.card.name)}</strong><p>${money(i.price)}</p><label class="quantity-label">Số lượng <input aria-label="Số lượng ${escape(i.card.name)}" type="number" min="1" max="${i.quantity}" value="${i.cart_quantity}" data-cart-id="${i.id}"></label></div><button class="icon-button" data-action="remove-cart" data-id="${i.id}" aria-label="Bỏ ${escape(i.card.name)}">×</button></div>`).join('')}</div><div class="order-total">Tổng cộng <strong>${money(total)}</strong></div><p class="fine-print">Giao dịch giả lập. Không thu tiền, không giao hàng thực tế. Card sẽ được thêm vào bộ sưu tập sau khi đặt hàng.</p><button class="button dark full" id="checkout">Xác nhận đặt hàng ↗</button>` : empty('Giỏ hàng còn trống', 'Thêm một chiếc card yêu thích để bắt đầu.')}<p class="form-error" id="cart-error" role="alert"></p>`);
   $('#checkout')?.addEventListener('click', async e => { e.target.disabled = true; try { const result = await api('checkout', {}); await refresh(); closeModal(); location.hash = 'orders'; toast(`Đã tạo đơn #${result.id}. Card đã vào bộ sưu tập.`); } catch (error) { showError('#cart-error', error); e.target.disabled = false; } });
   document.querySelectorAll('[data-cart-id]').forEach(input => input.addEventListener('change', async () => { try { await api('cart', { listingId: Number(input.dataset.cartId), quantity: Number(input.value) }); await refresh(); cart(); } catch (error) { showError('#cart-error', error); } }));
@@ -130,6 +138,6 @@ document.addEventListener('click', async e => {
 });
 $('#cart-button').addEventListener('click', cart);
 $('#account-button').addEventListener('click', () => state.user ? showModal(`<h2 id="modal-title">Xin chào, ${escape(state.user.name)}.</h2><p class="muted">${escape(state.user.email)}</p><button class="button outline full" data-action="logout">Đăng xuất ↗</button>`) : auth());
-function navigate() { const page = location.hash.slice(1); state.page = ['market','collection','selling','orders'].includes(page) ? page : 'market'; render(); if (page === 'cards') $('#cards')?.scrollIntoView(); else window.scrollTo({ top: 0, behavior: 'instant' }); }
+function navigate() { const page = location.hash.slice(1); state.page = ['market', 'collection', 'selling', 'orders'].includes(page) ? page : 'market'; render(); if (page === 'cards') $('#cards')?.scrollIntoView(); else window.scrollTo({ top: 0, behavior: 'instant' }); }
 window.addEventListener('hashchange', navigate);
 try { const [session, catalog] = await Promise.all([api('me'), api('catalog')]); Object.assign(state, session, { catalog }); await refresh(); navigate(); } catch { $('#main').innerHTML = empty('Chưa kết nối được máy chủ', 'Kiểm tra ứng dụng đã chạy bằng npm start, sau đó tải lại trang.'); }
