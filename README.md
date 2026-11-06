@@ -49,7 +49,7 @@ Kiểm thử trình duyệt tùy chọn: `npm run test:browser`. Script tự tì
 
 ## ACVIS và GitHub
 
-Bản chuẩn trước các lần thử IDOR/SQLi là commit `82617e0`. Theo yêu cầu, nhánh `main` có lỗi IDOR tại API xem đơn hàng ([case 002](docs/acvis-idor-case.md)) và SQL Injection tại bộ lọc người bán của API tin bán ([case 003](docs/acvis-sqli-case.md)); mỗi lỗi nằm trong commit riêng. Lỗi XSS cũ đã được hoàn tác và không khôi phục. Repository private: [tantkde180504/PokeCardc](https://github.com/tantkde180504/PokeCardc).
+Bản chuẩn trước các lần thử IDOR/SQLi/Path Traversal là commit `82617e0`. Theo yêu cầu, nhánh `main` có IDOR tại API đơn hàng ([case 002](docs/acvis-idor-case.md)), SQL Injection tại bộ lọc người bán ([case 003](docs/acvis-sqli-case.md)) và Path Traversal tại API tải tài liệu ([case 004](docs/acvis-path-traversal-case.md)); mỗi lỗi nằm trong commit riêng. Lỗi XSS cũ đã được hoàn tác và không khôi phục. Repository private: [tantkde180504/PokeCardc](https://github.com/tantkde180504/PokeCardc).
 
 ACVIS tại `D:\ACVIS\ACVIS` hiện có template cho SQLi, XSS, Path Traversal, IDOR và Hardcoded Secrets. Không coi việc ACVIS không báo lỗi là chứng nhận an toàn. Chưa thực hiện quét ACVIS trong lần xây dựng này.
 

@@ -26,6 +26,19 @@ export function createHandler(store, { secureCookies = process.env.COOKIE_SECURE
         if (url.pathname === '/api/me') return send(200, session || { user: null, csrf: null });
         if (url.pathname === '/api/catalog') return send(200, catalog);
         if (url.pathname === '/api/listings') return send(200, await store.listings(url.searchParams.get('seller') || ''));
+        if (url.pathname === '/api/download') {
+          const filename = url.searchParams.get('file');
+          if (!filename || filename.length > 200) throw new AppError('Tên file không hợp lệ.');
+          const filepath = resolve(root, 'server/assets/downloads', filename);
+          let bytes;
+          try { bytes = await readFile(filepath); }
+          catch (error) {
+            if (['ENOENT', 'ENOTDIR', 'EISDIR'].includes(error.code)) throw new AppError('Không tìm thấy tài liệu.', 404);
+            throw error;
+          }
+          res.writeHead(200, { ...headers, 'Content-Type': 'text/plain; charset=utf-8', 'Content-Disposition': 'attachment; filename="card-document.txt"' });
+          res.end(bytes); return;
+        }
         if (!session) throw new AppError('Vui lòng đăng nhập.', 401);
         if (url.pathname === '/api/collection') return send(200, await store.collection(session.user.id));
         if (url.pathname === '/api/cart') return send(200, await store.cart(session.user.id));

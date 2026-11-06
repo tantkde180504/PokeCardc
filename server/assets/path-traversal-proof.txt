@@ -1,0 +1,2 @@
+ACVIS_PATH_TRAVERSAL_PROOF_004
+Harmless fixture outside the downloads directory. Contains no credentials or user data.

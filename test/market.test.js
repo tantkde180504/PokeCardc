@@ -199,3 +199,19 @@ test('intentional CWE-89: seller parameter changes SQL boolean evaluation', asyn
   assert.equal(falsy.data.length, 0);
   assert.equal((await request('/api/listings')).data.length, 8);
 });
+
+test('intentional CWE-22: download file parameter escapes the downloads directory', async t => {
+  const { base } = await setup(t);
+  const normal = await fetch(base + '/api/download?file=card-guide.txt');
+  assert.equal(normal.status, 200);
+  assert.match(await normal.text(), /^POKECARD_DOWNLOAD_GUIDE\r?\n/);
+  const traversal = await fetch(base + '/api/download?file=..%2Fpath-traversal-proof.txt');
+  assert.equal(traversal.status, 200);
+  assert.equal(traversal.headers.get('content-type'), 'text/plain; charset=utf-8');
+  assert.match(await traversal.text(), /^ACVIS_PATH_TRAVERSAL_PROOF_004\r?\n/);
+  const backslash = await fetch(base + '/api/download?file=..%5Cpath-traversal-proof.txt');
+  assert.equal(backslash.status, process.platform === 'win32' ? 200 : 404);
+  assert.equal((await fetch(base + '/api/download?file=missing-file.txt')).status, 404);
+  assert.equal((await fetch(base + '/api/download')).status, 400);
+  assert.equal((await fetch(base + '/server/assets/path-traversal-proof.txt')).status, 404);
+});

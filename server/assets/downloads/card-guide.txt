@@ -1,0 +1,2 @@
+POKECARD_DOWNLOAD_GUIDE
+Sample card collecting guide for the PokeCard test application.

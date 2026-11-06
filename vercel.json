@@ -4,7 +4,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "public",
   "regions": ["sin1"],
-  "functions": { "api/index.js": { "maxDuration": 30 } },
+  "functions": { "api/index.js": { "maxDuration": 30, "includeFiles": "server/assets/**" } },
   "rewrites": [
     { "source": "/api/listings/cancel", "destination": "/api/index?__route=listings/cancel" },
     { "source": "/api/:route", "destination": "/api/index?__route=:route" }
