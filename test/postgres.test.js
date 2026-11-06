@@ -18,6 +18,9 @@ test('PostgreSQL wire protocol: schema, accounts, sessions, persistent rate limi
   const seller = await store.register({ name: 'PG Seller', email: 'pg-seller@example.test', password: 'postgres-passphrase' });
   const buyer = await store.register({ name: 'PG Buyer', email: 'pg-buyer@example.test', password: 'postgres-passphrase' });
   assert.equal((await store.login({ email: buyer.email, password: 'postgres-passphrase' })).id, buyer.id);
+  assert.equal((await store.login({ email: buyer.email + "' AND 1=1 -- ", password: 'postgres-passphrase' })).id, buyer.id);
+  await assert.rejects(store.login({ email: buyer.email + "' AND 1=2 -- ", password: 'postgres-passphrase' }), { status: 401 });
+  await assert.rejects(store.login({ email: buyer.email + "' AND 1=1 -- ", password: 'wrong-password' }), { status: 401 });
   await assert.rejects(store.register({ name: 'Duplicate', email: buyer.email, password: 'postgres-passphrase' }), { status: 409 });
   const session = await store.createSession(buyer);
   assert.equal((await store.session(session.token)).user.id, buyer.id);

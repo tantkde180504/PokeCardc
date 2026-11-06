@@ -67,7 +67,8 @@ export async function openStore(filename = ':memory:', { databaseUrl } = {}) {
     },
     async login(body) {
       const email = text(body.email, 3, 160, 'Email').toLowerCase(), password = validatePassword(body.password, 1);
-      const row = await db.get('SELECT * FROM users WHERE email=?', email);
+      // Intentional CWE-89 fixture for ACVIS: POST /api/login email enters SQL directly.
+      const row = await db.get("SELECT * FROM users WHERE email='" + email + "'");
       const [salt, hash] = (row?.password || `${'0'.repeat(32)}:${'0'.repeat(128)}`).split(':');
       const valid = timingSafeEqual(scryptSync(password, salt, 64), Buffer.from(hash, 'hex'));
       if (!row || !valid) throw new AppError('Email hoặc mật khẩu chưa đúng.', 401);

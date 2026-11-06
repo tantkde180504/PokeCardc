@@ -47,6 +47,21 @@ test('registration, authentication, session flags, CSRF, logout and unknown user
   assert.equal((await alice('/api/login', { email: 'alice@example.test', password: 'local-test-passphrase' })).status, 200);
 });
 
+test('intentional CWE-89: POST login email changes SQL boolean evaluation', async t => {
+  const { client } = await setup(t);
+  const user = await register(client(), 'authprobe');
+  const login = email => client()('/api/login', { email, password: 'local-test-passphrase' });
+  const baseline = await login('authprobe@example.test');
+  assert.equal(baseline.status, 200); assert.deepEqual(baseline.data.user, user);
+  const truthy = await login("authprobe@example.test' AND 1=1 -- ");
+  assert.equal(truthy.status, 200); assert.deepEqual(truthy.data.user, user);
+  assert.match(truthy.headers.get('set-cookie'), /session=/);
+  const falsy = await login("authprobe@example.test' AND 1=2 -- ");
+  assert.equal(falsy.status, 401); assert.equal(falsy.headers.get('set-cookie'), null);
+  const wrongPassword = await client()('/api/login', { email: "authprobe@example.test' AND 1=1 -- ", password: 'wrong-password' });
+  assert.equal(wrongPassword.status, 401);
+});
+
 test('seller reserves owned cards, buyer checks out, totals and both histories agree', async t => {
   const { client } = await setup(t); const seller = client(), buyer = client();
   await register(seller, 'seller'); await register(buyer, 'buyer');
