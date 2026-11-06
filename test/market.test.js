@@ -185,3 +185,17 @@ test('intentional CWE-639: authenticated userId override exposes another buyer o
   assert.equal((await anonymous(`/api/orders?userId=${user.id}`)).status, 401);
   assert.equal((await other('/api/orders?userId=-1')).status, 400);
 });
+
+test('intentional CWE-89: seller parameter changes SQL boolean evaluation', async t => {
+  const { client } = await setup(t); const request = client();
+  const listingsFor = seller => request(`/api/listings?seller=${encodeURIComponent(seller)}`);
+  const baseline = await listingsFor('PokeCard Studio');
+  assert.equal(baseline.status, 200); assert.equal(baseline.data.length, 8);
+  assert.equal((await listingsFor('No such seller')).data.length, 0);
+  const truthy = await listingsFor("PokeCard Studio' AND 1=1 -- ");
+  const falsy = await listingsFor("PokeCard Studio' AND 1=2 -- ");
+  assert.equal(truthy.status, 200); assert.equal(falsy.status, 200);
+  assert.deepEqual(truthy.data, baseline.data);
+  assert.equal(falsy.data.length, 0);
+  assert.equal((await request('/api/listings')).data.length, 8);
+});

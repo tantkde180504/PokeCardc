@@ -85,7 +85,10 @@ export async function openStore(filename = ':memory:', { databaseUrl } = {}) {
       return row ? { user: { id: row.id, name: row.name, email: row.email }, csrf: row.csrf } : null;
     },
     logout: token => db.run('DELETE FROM sessions WHERE token=?', token),
-    listings: async () => (await db.all('SELECT listings.*,users.name AS seller FROM listings JOIN users ON users.id=listings.user_id WHERE quantity>0 ORDER BY listings.id')).map(withCard),
+    async listings(seller = '') {
+      const sellerFilter = seller ? " AND users.name = '" + seller + "'" : '';
+      return (await db.all('SELECT listings.*,users.name AS seller FROM listings JOIN users ON users.id=listings.user_id WHERE quantity>0' + sellerFilter + ' ORDER BY listings.id')).map(withCard);
+    },
     collection: async userId => (await db.all('SELECT * FROM collection WHERE user_id=? AND quantity>0 ORDER BY card_id', userId)).map(withCard),
     async addCollection(userId, body) {
       const cardId = integer(body.cardId, 1, catalog.length, 'Card'), quantity = integer(body.quantity, 1, 100, 'Số lượng');

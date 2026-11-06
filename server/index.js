@@ -25,7 +25,7 @@ export function createHandler(store, { secureCookies = process.env.COOKIE_SECURE
       if (req.method === 'GET') {
         if (url.pathname === '/api/me') return send(200, session || { user: null, csrf: null });
         if (url.pathname === '/api/catalog') return send(200, catalog);
-        if (url.pathname === '/api/listings') return send(200, await store.listings());
+        if (url.pathname === '/api/listings') return send(200, await store.listings(url.searchParams.get('seller') || ''));
         if (!session) throw new AppError('Vui lòng đăng nhập.', 401);
         if (url.pathname === '/api/collection') return send(200, await store.collection(session.user.id));
         if (url.pathname === '/api/cart') return send(200, await store.cart(session.user.id));

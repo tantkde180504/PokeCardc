@@ -34,6 +34,9 @@ test('PostgreSQL wire protocol: schema, accounts, sessions, persistent rate limi
   assert.equal(await store.consumeAuthAttempt('test-ip'), false);
   assert.equal((await store.session(session.token)).user.id, buyer.id);
   assert.equal((await store.listings()).length, 8, 'Initialization must not duplicate seed listings');
+  assert.equal((await store.listings('PokeCard Studio')).length, 8);
+  assert.equal((await store.listings("PokeCard Studio' AND 1=1 -- ")).length, 8);
+  assert.equal((await store.listings("PokeCard Studio' AND 1=2 -- ")).length, 0);
   server = createApp(store);
   await new Promise(r => server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${server.address().port}`;
