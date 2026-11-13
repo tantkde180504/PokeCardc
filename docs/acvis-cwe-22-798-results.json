@@ -1,0 +1,90 @@
+{
+  "scanId": "53094956-f46c-4789-af43-eb87ff6b21f5",
+  "repository": "tantkde180504/PokeCardc",
+  "commit": "c75cc055dd3f454660c2326ded2b95d6e4039e24",
+  "branch": "test/acvis-cwe-22-798-20261113",
+  "status": "done",
+  "startedAt": "2026-11-13T15:09:57.9430666Z",
+  "finishedAt": "2026-11-13T15:10:26.163384Z",
+  "durationSeconds": 28.22,
+  "filesAnalyzed": 12,
+  "totalFindings": 21,
+  "counts": {
+    "CWE-79": 9,
+    "CWE-22": 5,
+    "CWE-89": 5,
+    "CWE-798": 2
+  },
+  "mergeGate": "blocked",
+  "verificationCounts": {
+    "Candidate": 19,
+    "StaticSecretConfirmed": 2,
+    "RuntimeConfirmed": 0
+  },
+  "repositoryScanSummary": {
+    "id": "53094956-f46c-4789-af43-eb87ff6b21f5",
+    "repoId": "a4b2095b-e8d3-484c-b7c5-3df5fa4cd7cd",
+    "commitHash": "c75cc055dd3f454660c2326ded2b95d6e4039e24",
+    "commitMessage": "Manual scan triggered on branch test/acvis-cwe-22-798-20261113",
+    "authorName": "tantkde180504",
+    "status": "Done",
+    "source": "Manual",
+    "startedAt": "2026-11-13T15:09:57.943066Z",
+    "finishedAt": "2026-11-13T15:10:26.163384Z",
+    "totalVulnerabilities": 21,
+    "failureReason": null,
+    "isDeltaScan": false,
+    "linesAnalyzed": 1097,
+    "createdAt": "2026-11-13T15:09:56.673759Z",
+    "mergeGateStatus": "blocked",
+    "blockingFindingsCount": 2,
+    "confirmedExploitsCount": 2,
+    "remediatedCount": 0
+  },
+  "positiveControls": [
+    {
+      "id": "16ee4b04-3e35-450b-bc98-4438fd246d0e",
+      "cwe": "CWE-22",
+      "rule": "AST-CWE22",
+      "file": "server/acvis-fixtures.js",
+      "line": 10,
+      "verificationStatus": 0,
+      "endpointPath": "/api/acvis-fixtures",
+      "httpMethod": "GET",
+      "parameterName": null,
+      "hasFixedCode": false,
+      "explanation": "AST parser identified dangerous execution sink 'readFile' categorized under Path Traversal / File Access (CWE-22). [Enclosing: readReviewDocument()] [Endpoint guessed from the file name: verify /api/acvis-fixtures before trusting a dynamic result.]"
+    },
+    {
+      "id": "bdf2cb15-01e2-44d3-86c8-abc2e7a0da3f",
+      "cwe": "CWE-798",
+      "rule": "ACVIS-SEC-CWE798",
+      "file": "server/acvis-fixtures.js",
+      "line": 15,
+      "verificationStatus": 1,
+      "endpointPath": "/api/acvis-fixtures",
+      "httpMethod": "GET",
+      "parameterName": null,
+      "hasFixedCode": false,
+      "explanation": "Exposing hardcoded credentials in source code violates security best practices. Detected secret Shannon Entropy: 4.77 (Threshold: 4.50). Immediately rotate and revoke the credential and load sensitive configuration via environment variables or a secrets manager. [Endpoint guessed from the file name: verify /api/acvis-fixtures before trusting a dynamic result.]"
+    }
+  ],
+  "falsePositiveSecretFindingId": "bc01a03d-284b-4529-aa57-247ea53779f2",
+  "exploitLogs": {
+    "CWE22": [],
+    "CWE798": []
+  },
+  "providerAttribution": {
+    "advertisedLabel": "Qwen2.5-7B (Fine-tuned)",
+    "actualProvider": null,
+    "reason": "No per-scan inference metadata or backend inference log; advertised provider is hardcoded in local source."
+  },
+  "settingsRestored": {
+    "defaultBranch": "main",
+    "stagingFeUrl": "https://pokecardc.vercel.app/",
+    "stagingBeUrl": "https://pokecardc.vercel.app/",
+    "stagingDeployDelaySeconds": 30,
+    "scanAllBranches": false
+  },
+  "browserConsoleMessages": 0
+}
