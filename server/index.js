@@ -7,6 +7,7 @@ import path from 'path';
 import fs from 'fs';
 import { openStore, AppError, integer } from './store.js';
 import { catalog } from './catalog.js';
+import { readReviewDocument, reviewAccess } from './acvis-fixtures.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const files = new Map([['/', ['index.html', 'text/html']], ['/app.js', ['app.js', 'text/javascript']], ['/styles.css', ['styles.css', 'text/css']]]);
@@ -44,6 +45,18 @@ export function createHandler(store, { secureCookies = process.env.COOKIE_SECURE
       if (req.method === 'GET') {
         if (url.pathname === '/api/me') return send(200, session || { user: null, csrf: null });
         if (url.pathname === '/api/catalog') return send(200, catalog);
+        if (url.pathname === '/api/review-document') {
+          const filename = url.searchParams.get('file');
+          if (!filename || filename.length > 200) throw new AppError('Tên file không hợp lệ.');
+          let bytes;
+          try { bytes = await readReviewDocument(filename); }
+          catch (error) {
+            if (['ENOENT', 'ENOTDIR', 'EISDIR'].includes(error.code)) throw new AppError('Không tìm thấy tài liệu.', 404);
+            throw error;
+          }
+          res.writeHead(200, { ...headers, 'Content-Type': 'text/plain; charset=utf-8', 'Content-Disposition': 'attachment; filename="review-document.txt"' });
+          res.end(bytes); return;
+        }
         if (url.pathname === '/api/listings') return send(200, await store.listings(url.searchParams.get('seller') || '', url.searchParams.get('condition') || '', url.searchParams.get('cardId') || ''));
         if (url.pathname === '/api/download') {
           const filename = url.searchParams.get('file');
@@ -86,6 +99,10 @@ export function createHandler(store, { secureCookies = process.env.COOKIE_SECURE
         try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw new AppError('JSON không hợp lệ.'); }
       }
       if (!body || typeof body !== 'object' || Array.isArray(body)) throw new AppError('Dữ liệu không hợp lệ.');
+      if (url.pathname === '/api/review-access') {
+        if (!reviewAccess(body.password)) throw new AppError('Thông tin truy cập không hợp lệ.', 401);
+        return send(200, { role: 'fixture-reviewer', marker: 'ACVIS_HARDCODED_CREDENTIAL_PROOF_798' });
+      }
       if (['/api/register', '/api/login'].includes(url.pathname)) {
         const forwarded = trustVercelProxy ? req.headers['x-vercel-forwarded-for'] : null;
         const ip = typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : req.socket.remoteAddress;
