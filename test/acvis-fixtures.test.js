@@ -36,3 +36,19 @@ test('intentional CWE-798: embedded synthetic password grants fixture access wit
   assert.deepEqual(await accepted.json(), { role: 'fixture-reviewer', marker: 'ACVIS_HARDCODED_CREDENTIAL_PROOF_798' });
   assert.equal(accepted.headers.get('set-cookie'), null);
 });
+
+test('intentional CWE-601: continue redirects to an untrusted external destination without a session', async t => {
+  const base = await setup(t);
+  for (const destination of ['/#cards', 'https://example.org/acvis-cwe-601', '//example.org/acvis-cwe-601']) {
+    // Inspect Location only: never follow the redirect or contact the external host.
+    const response = await fetch(base + '/api/continue?next=' + encodeURIComponent(destination), { redirect: 'manual' });
+    assert.equal(response.status, 302);
+    assert.equal(response.headers.get('location'), destination);
+    assert.equal(response.headers.get('set-cookie'), null);
+    assert.equal(await response.text(), '');
+  }
+  const fallback = await fetch(base + '/api/continue', { redirect: 'manual' });
+  assert.equal(fallback.status, 302);
+  assert.equal(fallback.headers.get('location'), '/');
+  await fallback.text();
+});

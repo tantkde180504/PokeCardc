@@ -53,6 +53,8 @@ Bản chuẩn trước các lần thử IDOR/SQLi/Path Traversal là commit `826
 
 ACVIS tại `D:\ACVIS\ACVIS` hiện có template cho SQLi, XSS, Path Traversal, IDOR và Hardcoded Secrets. Không coi việc ACVIS không báo lỗi là chứng nhận an toàn. Chưa thực hiện quét ACVIS trong lần xây dựng này.
 
+Thử nghiệm ngoài dataset ngày 2026-11-20: thêm Open Redirect / CWE-601 tại `GET /api/continue?next=...` trên nhánh test hiện tại. Đã kiểm tra 9 file JSONL trong dataset ACVIS local, không có nhãn hoặc chuỗi `CWE-601`/`Open Redirect`. Xem [cách tái hiện và phạm vi kiểm chứng](docs/acvis-open-redirect-case.md). Thay đổi mới chỉ được kiểm tra local.
+
 Backend mặc định chỉ nghe `127.0.0.1`. Không cần thay cấu hình ACVIS để chạy PokeCard. Tích hợp DAST sau này cần cân nhắc riêng: validator staging URL trong ACVIS yêu cầu HTTPS và chặn IP local/private. Không tự tắt cơ chế đó.
 
 ## Cấu trúc và giới hạn triển khai

@@ -41,6 +41,12 @@ export function createHandler(store, { secureCookies = process.env.COOKIE_SECURE
       if (req.method === 'GET') {
         if (url.pathname === '/api/me') return send(200, session || { user: null, csrf: null });
         if (url.pathname === '/api/catalog') return send(200, catalog);
+        if (url.pathname === '/api/continue') {
+          // Intentional CWE-601: an untrusted destination becomes the Location header.
+          const next = url.searchParams.get('next') || '/';
+          res.writeHead(302, { ...headers, Location: next });
+          res.end(); return;
+        }
         if (url.pathname === '/api/review-document') {
           const filename = url.searchParams.get('file');
           if (!filename || filename.length > 200) throw new AppError('Tên file không hợp lệ.');
