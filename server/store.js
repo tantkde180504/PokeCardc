@@ -67,8 +67,7 @@ export async function openStore(filename = ':memory:', { databaseUrl } = {}) {
     },
     async login(body) {
       const email = text(body.email, 3, 160, 'Email').toLowerCase(), password = validatePassword(body.password, 1);
-      // Intentional CWE-89 fixture for ACVIS: POST /api/login email enters SQL directly.
-      const row = await db.get("SELECT * FROM users WHERE email='" + email + "'");
+      const row = await db.get('SELECT * FROM users WHERE email=?', email);
       const [salt, hash] = (row?.password || `${'0'.repeat(32)}:${'0'.repeat(128)}`).split(':');
       const valid = timingSafeEqual(scryptSync(password, salt, 64), Buffer.from(hash, 'hex'));
       if (!row || !valid) throw new AppError('Email hoặc mật khẩu chưa đúng.', 401);
@@ -87,12 +86,27 @@ export async function openStore(filename = ':memory:', { databaseUrl } = {}) {
     },
     logout: token => db.run('DELETE FROM sessions WHERE token=?', token),
     async listings(seller = '', condition = '', cardId = '') {
-      const sellerFilter = seller ? " AND users.name = '" + seller + "'" : '';
-      // Intentional CWE-89 fixture for ACVIS: condition is interpolated into SQL.
-      const conditionFilter = condition ? " AND listings.condition = '" + condition + "'" : '';
-      // Intentional CWE-89 fixture for ACVIS: unvalidated numeric SQL expression.
-      const cardFilter = cardId ? ' AND listings.card_id = ' + cardId : '';
-      return (await db.all('SELECT listings.*,users.name AS seller FROM listings JOIN users ON users.id=listings.user_id WHERE quantity>0' + sellerFilter + conditionFilter + cardFilter + ' ORDER BY listings.id')).map(withCard);
+      let query = 'SELECT listings.*,users.name AS seller FROM listings JOIN users ON users.id=listings.user_id WHERE quantity>0';
+      const params = [];
+      if (seller) {
+        query += ' AND users.name = ?';
+        params.push(seller);
+      }
+      if (condition) {
+        query += ' AND listings.condition = ?';
+        params.push(condition);
+      }
+      if (cardId) {
+        const id = Number(cardId);
+        if (!Number.isSafeInteger(id) || id < 1) {
+          query += ' AND 1=0';
+        } else {
+          query += ' AND listings.card_id = ?';
+          params.push(id);
+        }
+      }
+      query += ' ORDER BY listings.id';
+      return (await db.all(query, ...params)).map(withCard);
     },
     collection: async userId => (await db.all('SELECT * FROM collection WHERE user_id=? AND quantity>0 ORDER BY card_id', userId)).map(withCard),
     async addCollection(userId, body) {
