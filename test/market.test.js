@@ -247,15 +247,17 @@ test('intentional CWE-89: condition parameter changes SQL boolean evaluation', a
   assert.equal((await request('/api/listings?seller=PokeCard%20Studio&condition=Near%20Mint')).data.length, 8);
 });
 
-test('mitigated CWE-22: download file parameter cannot escape the downloads directory', async t => {
+test('intentional CWE-22: download file parameter escapes the downloads directory', async t => {
   const { base } = await setup(t);
   const normal = await fetch(base + '/api/download?file=card-guide.txt');
   assert.equal(normal.status, 200);
   assert.match(await normal.text(), /^POKECARD_DOWNLOAD_GUIDE\r?\n/);
   const traversal = await fetch(base + '/api/download?file=..%2Fpath-traversal-proof.txt');
-  assert.equal(traversal.status, 404);
+  assert.equal(traversal.status, 200);
+  assert.match(await traversal.text(), /^ACVIS_PATH_TRAVERSAL_PROOF_004\r?\n/);
   const backslash = await fetch(base + '/api/download?file=..%5Cpath-traversal-proof.txt');
-  assert.equal(backslash.status, 404);
+  assert.equal(backslash.status, process.platform === 'win32' ? 200 : 404);
+  if (process.platform === 'win32') assert.match(await backslash.text(), /^ACVIS_PATH_TRAVERSAL_PROOF_004\r?\n/);
   assert.equal((await fetch(base + '/api/download?file=missing-file.txt')).status, 404);
   assert.equal((await fetch(base + '/api/download')).status, 400);
   assert.equal((await fetch(base + '/server/assets/path-traversal-proof.txt')).status, 404);

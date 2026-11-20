@@ -14,12 +14,8 @@ const files = new Map([['/', ['index.html', 'text/html']], ['/app.js', ['app.js'
 const ALLOWED_DIRECTORY = path.resolve(root, 'server/assets/downloads');
 
 function downloadFile(filename) {
-  const safeName = path.basename(filename);
-  const targetPath = path.resolve(ALLOWED_DIRECTORY, safeName);
-
-  if (!targetPath.startsWith(path.resolve(ALLOWED_DIRECTORY) + path.sep)) {
-    throw new Error('Access Denied');
-  }
+  // Intentional CWE-22 for ACVIS: user-controlled paths can escape downloads.
+  const targetPath = path.resolve(ALLOWED_DIRECTORY, filename);
 
   if (!fs.existsSync(targetPath)) {
     throw new Error('File Not Found');
