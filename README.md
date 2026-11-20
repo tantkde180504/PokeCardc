@@ -49,9 +49,7 @@ Kiểm thử trình duyệt tùy chọn: `npm run test:browser`. Script tự tì
 
 ## ACVIS và GitHub
 
-Bản chuẩn trước các lần thử IDOR/SQLi/Path Traversal là commit `82617e0`. Theo yêu cầu, nhánh `main` có IDOR tại API đơn hàng ([case 002](docs/acvis-idor-case.md)), SQL Injection tại bộ lọc người bán ([case 003](docs/acvis-sqli-case.md)) và Path Traversal tại API tải tài liệu ([case 004](docs/acvis-path-traversal-case.md)); mỗi lỗi nằm trong commit riêng. Lỗi XSS cũ đã được hoàn tác và không khôi phục. Repository private: [tantkde180504/PokeCardc](https://github.com/tantkde180504/PokeCardc).
-
-ACVIS tại `D:\ACVIS\ACVIS` hiện có template cho SQLi, XSS, Path Traversal, IDOR và Hardcoded Secrets. Không coi việc ACVIS không báo lỗi là chứng nhận an toàn. Chưa thực hiện quét ACVIS trong lần xây dựng này.
+Bản hiện tại đã khắc phục toàn bộ các lỗi thử nghiệm (SQL Injection, IDOR, Path Traversal, Open Redirect, Hardcoded Secrets) và đưa về trạng thái hoạt động an toàn bình thường. Repository private: [tantkde180504/PokeCardc](https://github.com/tantkde180504/PokeCardc). Các tài liệu mô tả từng case thử nghiệm được lưu trữ trong thư mục `docs/`.
 
 Backend mặc định chỉ nghe `127.0.0.1`. Không cần thay cấu hình ACVIS để chạy PokeCard. Tích hợp DAST sau này cần cân nhắc riêng: validator staging URL trong ACVIS yêu cầu HTTPS và chặn IP local/private. Không tự tắt cơ chế đó.
 

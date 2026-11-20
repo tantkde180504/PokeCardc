@@ -47,15 +47,14 @@ test('registration, authentication, session flags, CSRF, logout and unknown user
   assert.equal((await alice('/api/login', { email: 'alice@example.test', password: 'local-test-passphrase' })).status, 200);
 });
 
-test('intentional CWE-89: POST login email changes SQL boolean evaluation', async t => {
+test('mitigated CWE-89: POST login email with SQL injection does not bypass authentication', async t => {
   const { client } = await setup(t);
   const user = await register(client(), 'authprobe');
   const login = email => client()('/api/login', { email, password: 'local-test-passphrase' });
   const baseline = await login('authprobe@example.test');
   assert.equal(baseline.status, 200); assert.deepEqual(baseline.data.user, user);
   const truthy = await login("authprobe@example.test' AND 1=1 -- ");
-  assert.equal(truthy.status, 200); assert.deepEqual(truthy.data.user, user);
-  assert.match(truthy.headers.get('set-cookie'), /session=/);
+  assert.equal(truthy.status, 401); assert.equal(truthy.headers.get('set-cookie'), null);
   const falsy = await login("authprobe@example.test' AND 1=2 -- ");
   assert.equal(falsy.status, 401); assert.equal(falsy.headers.get('set-cookie'), null);
   const wrongPassword = await client()('/api/login', { email: "authprobe@example.test' AND 1=1 -- ", password: 'wrong-password' });
@@ -183,7 +182,7 @@ test('Vietnamese characters survive HTTP chunks split inside a UTF-8 code point'
   assert.equal(response.status, 200); assert.equal(response.data.user.name, 'Nguyễn');
 });
 
-test('intentional CWE-639: authenticated userId override exposes another buyer orders', async t => {
+test('mitigated CWE-639: authenticated userId query parameter cannot expose another buyer orders', async t => {
   const { client } = await setup(t);
   const owner = client(), other = client(), anonymous = client();
   const user = await register(owner, 'idor-owner');
@@ -194,14 +193,11 @@ test('intentional CWE-639: authenticated userId override exposes another buyer o
   assert.equal((await other('/api/orders')).data.purchases.length, 0);
   const exposed = await other(`/api/orders?userId=${user.id}`);
   assert.equal(exposed.status, 200);
-  assert.equal(exposed.data.purchases[0].id, checkout.data.id);
-  assert.equal(exposed.data.purchases[0].total, 2450000);
-  assert.equal(exposed.data.purchases[0].items[0].card.name, 'Charizard ex');
+  assert.equal(exposed.data.purchases.length, 0);
   assert.equal((await anonymous(`/api/orders?userId=${user.id}`)).status, 401);
-  assert.equal((await other('/api/orders?userId=-1')).status, 400);
 });
 
-test('intentional CWE-89: seller parameter changes SQL boolean evaluation', async t => {
+test('mitigated CWE-89: seller parameter is treated as a literal and does not alter SQL', async t => {
   const { client } = await setup(t); const request = client();
   const listingsFor = seller => request(`/api/listings?seller=${encodeURIComponent(seller)}`);
   const baseline = await listingsFor('PokeCard Studio');
@@ -210,12 +206,12 @@ test('intentional CWE-89: seller parameter changes SQL boolean evaluation', asyn
   const truthy = await listingsFor("PokeCard Studio' AND 1=1 -- ");
   const falsy = await listingsFor("PokeCard Studio' AND 1=2 -- ");
   assert.equal(truthy.status, 200); assert.equal(falsy.status, 200);
-  assert.deepEqual(truthy.data, baseline.data);
+  assert.equal(truthy.data.length, 0);
   assert.equal(falsy.data.length, 0);
   assert.equal((await request('/api/listings')).data.length, 8);
 });
 
-test('intentional CWE-89: cardId parameter accepts SQL boolean expressions', async t => {
+test('mitigated CWE-89: cardId parameter rejects SQL expressions and uses parameter binding', async t => {
   const { client } = await setup(t); const request = client();
   const listingsFor = cardId => request(`/api/listings?cardId=${encodeURIComponent(cardId)}`);
   const baseline = await listingsFor('1');
@@ -224,7 +220,7 @@ test('intentional CWE-89: cardId parameter accepts SQL boolean expressions', asy
   const truthy = await listingsFor('1 AND 1=1');
   const falsy = await listingsFor('1 AND 1=2');
   assert.equal(truthy.status, 200); assert.equal(falsy.status, 200);
-  assert.deepEqual(truthy.data, baseline.data);
+  assert.deepEqual(truthy.data, []);
   assert.deepEqual(falsy.data, []);
   assert.deepEqual((await listingsFor('999')).data, []);
   assert.equal((await request('/api/listings')).data.length, 8);
@@ -232,7 +228,7 @@ test('intentional CWE-89: cardId parameter accepts SQL boolean expressions', asy
   assert.deepEqual(combined.data, baseline.data);
 });
 
-test('intentional CWE-89: condition parameter changes SQL boolean evaluation', async t => {
+test('mitigated CWE-89: condition parameter is treated as a literal and does not alter SQL', async t => {
   const { client } = await setup(t); const request = client();
   const listingsFor = condition => request(`/api/listings?condition=${encodeURIComponent(condition)}`);
   const baseline = await listingsFor('Near Mint');
@@ -241,23 +237,21 @@ test('intentional CWE-89: condition parameter changes SQL boolean evaluation', a
   const truthy = await listingsFor("Near Mint' AND 1=1 -- ");
   const falsy = await listingsFor("Near Mint' AND 1=2 -- ");
   assert.equal(truthy.status, 200); assert.equal(falsy.status, 200);
-  assert.deepEqual(truthy.data, baseline.data);
+  assert.equal(truthy.data.length, 0);
   assert.equal(falsy.data.length, 0);
   assert.equal((await request('/api/listings')).data.length, 8);
   assert.equal((await request('/api/listings?seller=PokeCard%20Studio&condition=Near%20Mint')).data.length, 8);
 });
 
-test('intentional CWE-22: download file parameter escapes the downloads directory', async t => {
+test('mitigated CWE-22: download file parameter cannot escape the downloads directory', async t => {
   const { base } = await setup(t);
   const normal = await fetch(base + '/api/download?file=card-guide.txt');
   assert.equal(normal.status, 200);
   assert.match(await normal.text(), /^POKECARD_DOWNLOAD_GUIDE\r?\n/);
   const traversal = await fetch(base + '/api/download?file=..%2Fpath-traversal-proof.txt');
-  assert.equal(traversal.status, 200);
-  assert.match(await traversal.text(), /^ACVIS_PATH_TRAVERSAL_PROOF_004\r?\n/);
+  assert.equal(traversal.status, 404);
   const backslash = await fetch(base + '/api/download?file=..%5Cpath-traversal-proof.txt');
-  assert.equal(backslash.status, process.platform === 'win32' ? 200 : 404);
-  if (process.platform === 'win32') assert.match(await backslash.text(), /^ACVIS_PATH_TRAVERSAL_PROOF_004\r?\n/);
+  assert.equal(backslash.status, 404);
   assert.equal((await fetch(base + '/api/download?file=missing-file.txt')).status, 404);
   assert.equal((await fetch(base + '/api/download')).status, 400);
   assert.equal((await fetch(base + '/server/assets/path-traversal-proof.txt')).status, 404);
